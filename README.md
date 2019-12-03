@@ -69,24 +69,24 @@ To maintain the correct operation of the STM device configuration tool, you must
 the device configuration tool created source-code between the matching "USER CODE BEGIN xxx" and "USER CODE END xxx" comment blocks.  
 
 ## Compiling & Loading Firmware Onto The CFA10052  
-
 If the CFA10052 module is loaded with the Crystalfontz supplied CFA735 or CFA835 firmware you'll need
-to follow a few extra steps to remove the CFA735/CFA835 firmware before you may install this example
+to follow a few extra steps to erase the CFA735/CFA835 firmware before you may install this example
 firmware, or your own custom firmware.  
 *See the "Important Note" in the "Example Firmware" section above before removing the CFA735/CFA835 firmware.*
 
-To remove the CFA735/CFA835 firmware:
+To erase the CFA735/CFA835 firmware:
   * Disconnect (or remove power supply) from the CFA10052 module.
   * Connect the BOOT0 test-point (a small pad on the back of the CFA10052 module, near the H1 connector) to 3.3V or 5V.
   * Power on the CFA10052 (or connect it to USB power). The display should be blank.
   * Use the STM32CubeIDE to compile and load this example firmware onto the CFA10052.
-  * Once the CFA735/CFA835 firmware has been removed/overwritten, connection of the BOOT0 pin to 3.3V/5V is no longer needed.
+  * Once the CFA735/CFA835 firmware has been erased/overwritten, connection of the BOOT0 pin to 3.3V/5V is no longer needed.
 
 *Note: If you are purchasing new modules and wish to remove the CFA735/CFA835 firmware erasure steps above, please ([email us](mailto:support@crystalfontz.com)) to discuss options.*
 
 Firmware can be loaded via any of the normal STM32 bootloader methods. Using a STMLink v2/v3 is
 preferred as this will also allow live debugging. You'll need to make a JTAG/SWD debugging
-cable to connect the STLink to the H1 header (see the table above). If using serial connection, USART1 may be used (RX=H1-Pin1 and TX=H1-Pin2).  
+cable to connect the STLink to the H1 header (see the table above).  
+If using serial connection, USART1 may be used (RX=H1-Pin1 and TX=H1-Pin2).  
 Form more detailed information about the STM32 bootloader, [see the PDF here](https://www.st.com/resource/en/application_note/cd00167594.pdf).
 
 ## Licences
