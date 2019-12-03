@@ -96,4 +96,4 @@ See the UNLICENCE file, or (https://unlicense.org/) for details.
 
 STM32CubeIDE created source-code and STMicroelectronics libraries are Copyright (c) 2019 STMicroelectronics.
 All rights reserved. The software component is licensed by ST under BSD 3-Clause license, the "License";
-You may not use these files except in compliance with the License. You may obtain a copy of the License at (opensource.org/licenses/BSD-3-Clause).
+You may not use these files except in compliance with the License. You may obtain a copy of the License at (http://opensource.org/licenses/BSD-3-Clause).
