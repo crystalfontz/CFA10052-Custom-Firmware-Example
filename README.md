@@ -1,6 +1,6 @@
 # Crystalfontz CFA10052 Custom Firmware Example  
 
-**NOTE: this example source-code & information is for CFA10052 hardware version 1.3 and onwards.**  
+**NOTE: this example source-code & information is for CFA10052 hardware version 1.1 and onwards.**  
 
 ## Introduction
 The Crystalfontz CFA10052 is a versatile intelligent LCD module.
