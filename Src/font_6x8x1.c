@@ -22,12 +22,14 @@
 #include "font_6x8x1.h"
 #include "lcd_st7529.h"
 
+//declarations for 6x8 1bit font data at the end of this file
 const uint8_t Font_6X8_Custom[8][FONT_HEIGHT];
 const uint8_t Font_6X8_Cursors[2][FONT_HEIGHT];
 const uint8_t Font_6X8[FONT_CHARNUM][FONT_HEIGHT];
 
 //////////////////////////////////////////////////////////////////////////////
 
+//render a character to the specified frame buffer memory
 void Font_DrawCharacter(uint8_t *Buffer, uint8_t XPos, uint8_t YPos, uint8_t Character)
 {
 	uint8_t		*BufferPos;
@@ -36,10 +38,10 @@ void Font_DrawCharacter(uint8_t *Buffer, uint8_t XPos, uint8_t YPos, uint8_t Cha
 	uint8_t		*CChar;
 	uint8_t		ExtraShift;
 
-	//draw character to frame buffer, no custom chars
-	//kept separate from normal DrawChar for speed
+	//starting frame buffer memory location
 	BufferPos = Buffer + XPos + (YPos * LCD_WIDTH);
 	ExtraShift = 0;
+	//check character type
 	if (Character > FONT_BASE-1)
 	{
 		//is standard text
@@ -63,27 +65,36 @@ void Font_DrawCharacter(uint8_t *Buffer, uint8_t XPos, uint8_t YPos, uint8_t Cha
 			CChar = (uint8_t*)Font_6X8[Character];
 		}
 
+	//render the character
 	for (y = 0; y < FONT_HEIGHT; y++)
 	{
 		for (x = 0; x < FONT_WIDTH; x++)
 		{
+			//get the bit state
 			State = ((CChar[y] >> (FONT_WIDTH - x - ExtraShift)) & 1) ? 0xFF : 0x00;
+			//set the pixel in the frame buffer
 			*BufferPos = State;
+			//next pixel
 			BufferPos++;
 		}
+		//move to the next frame buffer pixel row
 		BufferPos += LCD_WIDTH - FONT_WIDTH;
 	}
 }
 
+//render a null-terminated string to the specified frame buffer memory
 void Font_WriteString(uint8_t *Buffer, uint8_t XPos, uint8_t YPos, const char *Text)
 {
-	//write text straight to frame buffer until null char or 40 chars long
 	uint8_t	i;
+	//one character at a time, up to 40 chars long
 	for (i = 0; i < 40; i++)
 	{
 		if (Text[i] == 0)
+			//stop if string is null-terminated
 			break;
+		//advance x pixel position
 		XPos += FONT_WIDTH;
+		//render the character
 		Font_DrawCharacter(Buffer, XPos, YPos, Text[i]);
 	}
 }

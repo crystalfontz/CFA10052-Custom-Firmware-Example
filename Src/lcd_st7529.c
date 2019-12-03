@@ -82,7 +82,7 @@ uint8_t LCD_FrameBuffer[LCD_WIDTH * LCD_HEIGHT];
 static void ST7529_WriteCmd(uint8_t Cmd);
 static void ST7529_WriteDat(uint8_t Data);
 
-//public functions
+//set STM32 GPIO pins to write data
 void ST7529_BusToWrite(void)
 {
 	LL_GPIO_InitTypeDef GPIO_InitStruct;
@@ -95,6 +95,7 @@ void ST7529_BusToWrite(void)
 
 }
 
+//set STM32 GPIO pins to read data
 void ST7529_BusToRead(void)
 {
 	LL_GPIO_InitTypeDef GPIO_InitStruct;
@@ -105,10 +106,9 @@ void ST7529_BusToRead(void)
 	LL_GPIO_Init(ST7529_DATA_GPIO, &GPIO_InitStruct);
 }
 
+//write a command uint8_t to the ST7529
 static void ST7529_WriteCmd(uint8_t Cmd)
 {
-	// Write a command uint8_t to the ST7529
-
 	//A0 low for command
 	ST7529_A0_LOW();
 	//short delay for address setup time (tAW8 > 20nS)
@@ -153,10 +153,9 @@ static void ST7529_WriteCmd(uint8_t Cmd)
 #endif
 }
 
+//write a data uint8_t to the ST7529
 static void ST7529_WriteDat(uint8_t Data)
 {
-	//Write a data uint8_t to the ST7529
-
 	//A0 is already high
 	//set data lines
 	LL_GPIO_SetOutputPin(ST7529_DATA_GPIO, (uint32_t)(Data) | (uint32_t)(ST7529_DATA_RESET_MASK));
@@ -186,10 +185,10 @@ static void ST7529_WriteDat(uint8_t Data)
 #endif
 }
 
-// Config the STM32 to talk to the ST7529 and init the ST7529
+//initialize the ST7529 LCD controller
 void ST7529_Init(void)
 {
-	//blank framebuffer
+	//blank the framebuffer
 	memset(LCD_FrameBuffer, 0x00, LCD_WIDTH * LCD_HEIGHT);
 
 	//other pin inits already done in main()
@@ -297,9 +296,9 @@ void ST7529_Init(void)
 	ST7529_WriteCmd(LCD_DISPLAY_ON);
 }
 
+//initialize extra LCD panel settings (on flash settings load, after first LCD init)
 void ST7529_ExtSet2(uint8_t LCDOscFreq, uint8_t LCDBoosterFreq, uint8_t LCDBiasRatio)
 {
-	//Initialize extra LCD panel settings (on flash settings load, after first LCD init)
 	ST7529_BusToWrite();
 	ST7529_WriteCmd(LCD_EXT_SET_1);
 	ST7529_WriteCmd(LCD_ANALOG_CIRCUIT_SET);
@@ -310,18 +309,21 @@ void ST7529_ExtSet2(uint8_t LCDOscFreq, uint8_t LCDBoosterFreq, uint8_t LCDBiasR
 	ST7529_WriteCmd(LCD_DISPLAY_ON);
 }
 
+//set the LCD contrast
 void ST7529_WriteContrast(uint16_t Contrast)
 {
-	// Set the current contrast
 	ST7529_WriteCmd(LCD_CONTRAST_CONTROL);
 	ST7529_WriteDat(Contrast & 0b00111111);
 	ST7529_WriteDat(Contrast >> 6);
 }
 
+//write specified frame buffer memory to the LCD controller
 void ST7529_BufferToLCD(uint8_t *Buffer)
 {
 	uint8_t Row, Col;
+	//init GPIOs
 	ST7529_BusToWrite();
+	//set pixel coordinates (0x0 = top-left) for data write
 	ST7529_WriteCmd(LCD_LINE_ADDR_SET);
 	ST7529_WriteDat(LINE_ADDR_SET_PB1_START_LINE_PUT(0));
 	ST7529_WriteDat(LINE_ADDR_SET_PB2_END_LINE_PUT(160));
@@ -330,9 +332,11 @@ void ST7529_BufferToLCD(uint8_t *Buffer)
 	ST7529_WriteDat(COL_ADDR_SET_PB2_END_COL_PUT(255));
 	ST7529_WriteCmd(LCD_MEM_WRITE);
 
+	//write the frame buffer data to the LCD controller
 	for (Col = 0; Col < LCD_HEIGHT; Col++)
 	{
 		for (Row = 0; Row < LCD_WIDTH; Row++)
+			//write a byte of data
 			ST7529_WriteDat(*Buffer++);
 		//two unused pixels at the end of the row
 		ST7529_WriteDat(0);

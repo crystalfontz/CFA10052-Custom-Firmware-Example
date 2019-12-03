@@ -295,9 +295,6 @@ int main(void)
 		//update keypad backlight brightness
 		LEDs_KeypadBacklightSet(Keypad);
 
-		//ECHO USB SERIAL DATA
-
-
 		//loop delay
 		HAL_Delay(5);            //5mS
 

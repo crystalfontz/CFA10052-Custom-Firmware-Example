@@ -25,6 +25,7 @@ uint8_t Keypad_ButtonState[BUTTON_COUNT];
 
 /////////////////////////////////////////////////////////////////////////////////////////////////
 
+//init keypad vars
 void Keypad_Init(void)
 {
 	uint8_t i;
@@ -32,6 +33,7 @@ void Keypad_Init(void)
 		Keypad_ButtonState[i] = 0;
 }
 
+//init STM32 GPIOs for reading keypad status
 static void Keypad_PinsInit(void)
 {
 	LL_GPIO_InitTypeDef GPIO_InitStruct;
@@ -43,6 +45,7 @@ static void Keypad_PinsInit(void)
 	LL_GPIO_Init(GPIOC, &GPIO_InitStruct);
 }
 
+//check current state of keypad buttons
 void Keypad_CheckButtons(void)
 {
 	uint8_t Read = 0;
