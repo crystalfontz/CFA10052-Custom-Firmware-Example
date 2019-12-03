@@ -38,7 +38,7 @@ For a CFA10052 module to be re-programmed with CFA735 or CFA835 firmware it will
 Please [email us](mailto:support@crystalfontz.com) if you need more information on this topic.
 
 ## Software & Hardware Requirements  
-  * A [Crystalfontz CFA10052 (hardware v1.3 or later) Module (CFA735 / CFA835)](https://www.crystalfontz.com/product/cfa835tfk)
+  * A [Crystalfontz CFA10052 (hardware v1.1 or later) Module (CFA735 / CFA835)](https://www.crystalfontz.com/product/cfa835tfk)
   * A PC (Windows/Linux/OSX) with [STM32CubeIDE](https://www.st.com/en/development-tools/stm32cubeide.html) installed
   * A [STMicroelectronics ST-LINK (V2 or V3) programming interface](https://www.st.com/en/development-tools/st-link-v2.html)
   * A CFA10052 programming cable (details below)
@@ -77,7 +77,7 @@ firmware, or your own custom firmware.
 
 To remove the CFA735/CFA835 firmware:
   * Disconnect (or remove power supply) from the CFA10052 module.
-  * Connect the BOOT0 test-point (on the back of the CFA10052, near the H1 connector) to 3.3V or 5V.
+  * Connect the BOOT0 test-point (a small pad on the back of the CFA10052 module, near the H1 connector) to 3.3V or 5V.
   * Power on the CFA10052 (or connect it to USB power). The display should be blank.
   * Use the STM32CubeIDE to compile and load this example firmware onto the CFA10052.
   * Once the CFA735/CFA835 firmware has been removed/overwritten, connection of the BOOT0 pin to 3.3V/5V is no longer needed.
