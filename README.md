@@ -22,24 +22,16 @@ CFA10052 hardware features:
   * Up to 20 general purpose IO pins (GPIO's)
   * Multiple serial/SPI/I2C/CAN interfaces (depending on GPIO use).
   
-## Example Firmware
-This firmware, when compiled and programmed to a Crystalfontz CFA10052 module, will:
-  * Displays on the LCD an alternating grid, with current backlights, LCD contrast and keypad status information.
-  * Gives control of the backlights, and LCD contrast using the keypad.
-  * Changes the color of the four LEDs from red to green in sequence.
+This example firmware, when compiled and programmed to a Crystalfontz CFA10052 module will:
+  * Display on the LCD an alternating grid, with current backlights, LCD contrast and keypad status information.
+  * Provides control of the backlights, and LCD contrast using the keypad.
+  * Cycles the color of the four LEDs from red to green in sequence.
   * Enables the USART serial port on Header-1 pins 1 & 2 (115200 baud), and echoes any received data.
   * Enables the USB virtual serial port, and echoes any received data back to the host.
   
-**---- Important Note ----**    
-The Crystalfontz CFA735 and CFA835 products are a CFA10052 hardware module programmed with a bootloader and CFA735/CFA835 firmware.  
-The bootloader and CFA735/CFA835 firmware is not open-source, and cannot be copied off of the CFA10052 by the user, nor can it be programmed onto the CFA10052 by the user.
-Once a CFA735 or CFA835 is programmed with custom firmware, the module will loose all CFA735/CFA835 functionality.
-For a CFA10052 module to be re-programmed with CFA735 or CFA835 firmware it will need to be physically returned to Crystalfontz.
-Please [email us](mailto:support@crystalfontz.com) if you need more information on this topic.
-
 ## Software & Hardware Requirements  
   * A [Crystalfontz CFA10052 (hardware v1.1 or later) Module (CFA735 / CFA835)](https://www.crystalfontz.com/product/cfa835tfk)
-  * A PC (Windows/Linux/OSX) with [STM32CubeIDE](https://www.st.com/en/development-tools/stm32cubeide.html) installed
+  * A PC (Windows/Linux/OSX) with [STM32 ST-LINK Utility](https://www.st.com/en/development-tools/stsw-link004.html) and [STM32CubeIDE](https://www.st.com/en/development-tools/stm32cubeide.html) installed.
   * A [STMicroelectronics ST-LINK (V2 or V3) programming interface](https://www.st.com/en/development-tools/st-link-v2.html)
   * A CFA10052 programming cable (details below)
   * If you are using Windows 7/8/8.1/10 (or equivalent Server versions) and would like to test the USB virtual serial port, you'll need to [download drivers from here](https://www.st.com/en/development-tools/stsw-stm32102.html]). The USB serial port will work without requiring additional drivers on Windows 10+, Linux, OS-X.
@@ -54,40 +46,82 @@ ST-LINK Pin | CFA10052 H1 Pin | Description
 15 | 14 | RESET
 20 | 15 | GND
 
-*Note: If you're having trouble with ST-LINK to CFA10052 communications, try adding 10K pull-up resistors to the SWD-IO and SWD-CLK lines.*
+*Note: If you're having trouble with ST-LINK to CFA10052 communications, add 10K pull-up resistors to the SWD-IO and SWD-CLK lines.*
+
+## Removing the CFA735/CFA835 Firmware
+The CFA10052 is supplied by Crystalfontz with either the CFA735 or CFA835 firmware and a bootloader pre-installed. The flash
+memory is also read & write protected. The protection must be removed, and flash erased before custom firmware can be loaded.  
+
+**---- Important Note ----**    
+**The Crystalfontz supplied CFA735/CFA835 firmware and bootloader is not open-source, and cannot be copied off of the CFA10052 by the user,
+nor can it be programmed onto the CFA10052 by the user. Once a CFA735 or CFA835 is programmed with custom firmware, the module will loose all CFA735/CFA835 functionality.
+To regain CFA735/CFA835 functionality, the CFA10052 module will need to be physically returned to Crystalfontz for reprogramming.**  
+Please [email us](mailto:support@crystalfontz.com) if you need more information on this topic.  
+
+To remove the CFA735/CFA835 firmware:
+  * Disconnect the USB cable (or power supply) from the CFA10052 module.
+  * Connect the CFA10052 to the ST-LINK using the programming cable (see above), and the ST-LINK to the host PC.
+  * Hold the up & down keys on the CFA10052 while plugging the USB cable into the CFA10052 (or power supply).  
+   The CFA10052 should now show the Crystalfontz Bootloader screen.
+  * Run the [STM32 ST-LINK Utility](https://www.st.com/en/development-tools/stsw-link004.html).
+  * In the "Target" menu, open the "Option Bytes" window.
+  * In the "Read Out Protection" box, select "Level 0". Click Apply.
+  * The Crystalfontz firmware has now been removed and any custom firmware may now be programmed.  
+  
+Alternative method (if you cannot enter the Crystalfontz Bootloader by holding keys):  
+  * Disconnect the USB cable (or power supply) from the CFA10052 module.
+  * Connect the BOOT0 test-point (a small pad on the back of the CFA10052 module, near the H1 connector) to 3.3V or 5V.
+  * Connect the CFA10052 to the ST-LINK using the programming cable (see above), and the ST-LINK to the host PC.
+  * Power on the CFA10052 (or connect it to USB power). The display should be blank.
+  * Run the [STM32 ST-LINK Utility](https://www.st.com/en/development-tools/stsw-link004.html).
+  * In the "Target" menu, open the "Option Bytes" window.
+  * In the "Read Out Protection" box, select "Level 0". Click Apply.
+  * The Crystalfontz firmware has now been removed and any custom firmware may now be programmed.  
+   Connection of the BOOT0 pin to 3.3V/5V is no longer needed.
+   
+*Note: If you are purchasing new CFA10052 modules for custom firmware use, please ([contact us](mailto:support@crystalfontz.com)) to discuss firmware removal/programming options.*  
 
 ## STM32CubeIDE Software
 The firmware in this example has been partly created by, and written in STMicroelectronics STM32CubeIDE.  
-**It is recommended that you use the STM32CubeIDE to load and use this example firmware project.**  
 The STM32CubeIDE is a free to download & use integrated development environment based on Eclipse that
 has been modified/extended by STMicroelectronics to include STM32 specific tools
-(graphical device configuration tool, GCC ARM compiler, etc).  
+(graphical device configuration tool, compiler & toolset, etc).  
 You can read more about STM32CubeIDE, and download it on the 
-[STM32CubeIDE Webpage](https://www.st.com/en/development-tools/stm32cubeide.html).  
+[STM32CubeIDE Webpage](https://www.st.com/en/development-tools/stm32cubeide.html).    
 
 To maintain the correct operation of the STM device configuration tool, you must only edit
-the device configuration tool created source-code between the matching "USER CODE BEGIN xxx" and "USER CODE END xxx" comment blocks.  
+the device configuration tool created source-code between the matching "USER CODE BEGIN xxx" and
+"USER CODE END xxx" comment blocks.  
 
 ## Compiling & Loading Firmware Onto The CFA10052  
-If the CFA10052 module is loaded with the Crystalfontz supplied CFA735 or CFA835 firmware you'll need
-to follow a few extra steps to erase the CFA735/CFA835 firmware before you may install this example
-firmware, or your own custom firmware.  
-*See the "Important Note" in the "Example Firmware" section above before removing the CFA735/CFA835 firmware.*
+Once the Crystalfontz supplied CFA735/CFA835 firmware is removed (see section above), you may compile and load
+this example custom firmware (or firmware of your own) onto the CFA10052.
 
-To erase the CFA735/CFA835 firmware:
-  * Disconnect (or remove power supply) from the CFA10052 module.
-  * Connect the BOOT0 test-point (a small pad on the back of the CFA10052 module, near the H1 connector) to 3.3V or 5V.
-  * Power on the CFA10052 (or connect it to USB power). The display should be blank.
-  * Use the STM32CubeIDE to compile and load this example firmware onto the CFA10052.
-  * Once the CFA735/CFA835 firmware has been erased/overwritten, connection of the BOOT0 pin to 3.3V/5V is no longer needed.
+To compile the firmware:
+  * Open STM32CubeIDE.
+  * In the File menu, choose Import, then "Import Existing Projects Into Workspace".
+  * In the root directory box, select the directory of this example firmware. Click the Finish button.
+  * In the Project Explorer, select the cfa10052_example project, then open the Src, and "main.c" file.
+  * In the Project menu, select "Build Project".
+  
+To program and run the firmware on the CFA10052:
+  * Disconnect the USB cable (or power supply) from the CFA10052 module.
+  * Connect the CFA10052 to the ST-LINK using the programming cable (see above), and the ST-LINK to the host PC.
+  * Connect the USB cable (or power supply) to the CFA10052.
+  * Make sure the firmware project has been built (see steps above), and "Binaries" appears under "cfa10052_example" in the Project Explorer.
+    If "Binaries" isn't visible, right-click the "cfa10052_example" project and select Refresh.
+  * Select the Run menu, then "Debug Configurations".
+  * In the debug target types selection box on the left, Right-Click "STM32 Cortex-M Application", and select "New Configuration".
+  * A configuration window will be shown. The default settings are OK. Click the Apply then the Close button.
+  * In the Run menu, select "Debug As", then "STM32 Cortex Application".  
+    STM32CubeIDE should now connect to the ST-LINK, and upload and run the firmware on the CFA10052.
+  
+The above steps are only required on loading the project for the first time in STM32CubeIDE. After firmware source-code changes
+have been made, only re-building the project (Ctrl-B shortcut) and programming the CFA10052 (F11 key shortcut) are needed.
 
-*Note: If you are purchasing new modules and wish to remove the CFA735/CFA835 firmware erasure steps above, please ([email us](mailto:support@crystalfontz.com)) to discuss options.*
-
-Firmware can be loaded via any of the normal STM32 bootloader methods. Using a STMLink v2/v3 is
-preferred as this will also allow live debugging. You'll need to make a JTAG/SWD debugging
-cable to connect the STLink to the H1 header (see the table above).  
-If using serial connection, USART1 may be used (RX=H1-Pin1 and TX=H1-Pin2).  
-Form more detailed information about the STM32 bootloader, [see the PDF here](https://www.st.com/resource/en/application_note/cd00167594.pdf).
+Firmware can also be loaded via any of the normal STM32 bootloader methods (debugging is only availiable using the SWD interface
+and a ST-LINK). For example, if using serial connection, USART1 may be used (RX=H1-Pin1 and TX=H1-Pin2).  
+Form more detailed information about the STM32 bootloader and interfaces, [see the PDF here](https://www.st.com/resource/en/application_note/cd00167594.pdf).
 
 ## Licences
 Crystalfontz supplied source-code is provided using The Unlicense.
