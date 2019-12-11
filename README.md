@@ -36,7 +36,10 @@ This example firmware, when compiled and programmed to a Crystalfontz CFA10052 m
   * A CFA10052 programming cable (details below)
   * If you are using Windows 7/8/8.1/10 (or equivalent Server versions) and would like to test the USB virtual serial port, you'll need to [download drivers from here](https://www.st.com/en/development-tools/stsw-stm32102.html]). The USB serial port will work without requiring additional drivers on Windows 10+, Linux, OS-X.
   
-A simple CFA10052 to ST-LINK programming cable is required. This cable may be obtained from Crystalfontz ([email us](mailto:support@crystalfontz.com)), or you may make one yourself using the connection table below:
+A simple CFA10052 to ST-LINK programming cable is required.  
+To avoid the need to buy the H1 connector, pins and crimping tool, we suggest you purchase and modifiy a [Crystalfontz SCAB ribbon cable](https://www.crystalfontz.com/product/wrexty19-sixteen-pin-ribbon-cable).  
+
+The connection table is below:  
   
 ST-LINK Pin | CFA10052 H1 Pin | Description
 --- | --- | ----
