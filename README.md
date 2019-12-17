@@ -2,6 +2,8 @@
 
 **NOTE: this example source-code & information is for CFA10052 hardware version 1.1 and onwards.**  
 
+**See this github projects branches for other CFA10052 examples**
+
 ## Introduction
 The Crystalfontz CFA10052 is a versatile intelligent LCD module.
 Both the Crystalfontz CFA735 and CFA835 products are based on the CFA10052 hardware module.
