@@ -1,29 +1,23 @@
 /* USER CODE BEGIN Header */
 /**
- ******************************************************************************
- *
- * Crystalfontz CFA10052 (hardware v1.3 onwards) example/base firmware.
- *
- * For more information about this CFA10052 example custom firmware package,
- * please see the README.md file.
- *
- ******************************************************************************
- *
- * Crystalfontz supplied source-code is provided using The Unlicense.
- * A license with no conditions whatsoever which dedicates works to the public
- * domain. Unlicensed works, modifications, and larger works may be distributed
- * under different terms and without source code.
- * See the UNLICENCE file, or https://unlicense.org/ for details.
- *
- * STM32Cube created source-code and STMicroelectronics libraries are Copyright(c)
- * 2019 STMicroelectronics. All rights reserved.
- * This software component is licensed by ST under BSD 3-Clause license,
- * the "License"; You may not use this file except in compliance with the
- * License.
- * You may obtain a copy of the License at: opensource.org/licenses/BSD-3-Clause
- *
- ******************************************************************************
- */
+  ******************************************************************************
+  * @file           : main.h
+  * @brief          : Header for main.c file.
+  *                   This file contains the common defines of the application.
+  ******************************************************************************
+  * @attention
+  *
+  * <h2><center>&copy; Copyright (c) 2019 STMicroelectronics.
+  * All rights reserved.</center></h2>
+  *
+  * This software component is licensed by ST under Ultimate Liberty license
+  * SLA0044, the "License"; You may not use this file except in compliance with
+  * the License. You may obtain a copy of the License at:
+  *                             www.st.com/SLA0044
+  *
+  ******************************************************************************
+  */
+/* USER CODE END Header */
 
 /* Define to prevent recursive inclusion -------------------------------------*/
 #ifndef __MAIN_H
@@ -53,6 +47,7 @@ extern "C" {
 /* USER CODE BEGIN Includes */
 #include <stdarg.h>
 #include <string.h>
+#include <math.h>
 /* USER CODE END Includes */
 
 /* Exported types ------------------------------------------------------------*/
@@ -67,7 +62,10 @@ extern "C" {
 
 /* Exported macro ------------------------------------------------------------*/
 /* USER CODE BEGIN EM */
-
+#define TIMER_MAX					UINT32_MAX
+#define TIMER_RATE_MS				(HAL_GetTickFreq())
+#define IF_TIMER_EXPIRED(var)		if ((HAL_GetTick() - (var)) < (TIMER_MAX/2))
+#define TIMER_SET_NEXT(var,time_ms)	(var) = HAL_GetTick() + ((time_ms) * TIMER_RATE_MS);
 /* USER CODE END EM */
 
 /* Exported functions prototypes ---------------------------------------------*/
@@ -112,8 +110,8 @@ void Error_Handler(void);
 #define LCD_D4_KEY_OK_GPIO_Port GPIOC
 #define LCD_D5_KEY_CANCEL_Pin LL_GPIO_PIN_5
 #define LCD_D5_KEY_CANCEL_GPIO_Port GPIOC
-#define H1_5_GPIO5_Pin LL_GPIO_PIN_0
-#define H1_5_GPIO5_GPIO_Port GPIOB
+#define H1_5_ADC0_Pin LL_GPIO_PIN_0
+#define H1_5_ADC0_GPIO_Port GPIOB
 #define H1_6_GPIO6_Pin LL_GPIO_PIN_1
 #define H1_6_GPIO6_GPIO_Port GPIOB
 #define LCD_A0_BOOT1_Pin LL_GPIO_PIN_2

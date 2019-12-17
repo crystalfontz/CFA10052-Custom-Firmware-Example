@@ -7,6 +7,20 @@
  *
  * Crystalfontz CFA10052 (hardware v1.1 onwards) example/base firmware.
  *
+ * This example displays a moving histogram graph of voltages acquired from
+ * one of the two available ADC inputs on the CFA10052.
+ *
+ * The ADC input is Header 1 - Pin 5.
+ * Due to the resistive divider on the CFA10052 ADC input pin, maximum input
+ * voltage is 6.6V.
+ *
+ * The ADC is sampled at 21Khz, and averaged out over the length of one sample
+ * period (one horizontal pixel on the LCD).
+ *
+ * Up/Down keys change the length of the sample period.
+ * Left/Right keys move the voltage measurement cursor.
+ * The X key starts/stops sampling & graph scrolling.
+ *
  * For more information about this CFA10052 example custom firmware package,
  * please see the README.md file.
  *
@@ -31,7 +45,6 @@
 
 /* Includes ------------------------------------------------------------------*/
 #include "main.h"
-#include "fatfs.h"
 #include "usb_device.h"
 
 /* Private includes ----------------------------------------------------------*/
@@ -57,13 +70,22 @@
 
 /* Private macro -------------------------------------------------------------*/
 /* USER CODE BEGIN PM */
-
+#define SAMPLE_TIME			(250) /*mS*/
+#define SAMPLE_TIME_MIN		(10)
+#define SAMPLE_TIME_MAX		(60000)
+#define SAMPLE_RECORDS		(LCD_WIDTH)
+#define KEY_REPEAT_TIMER	(100) /*mS*/
 /* USER CODE END PM */
 
 /* Private variables ---------------------------------------------------------*/
+ADC_HandleTypeDef hadc1;
+
 SD_HandleTypeDef hsd;
 
 /* USER CODE BEGIN PV */
+
+volatile uint64_t ADCDataSum = 0;
+volatile uint32_t ADCDataCount = 0;
 
 /* USER CODE END PV */
 
@@ -77,6 +99,7 @@ static void MX_TIM4_Init(void);
 static void MX_USART1_UART_Init(void);
 static void MX_USART2_UART_Init(void);
 static void MX_SDIO_SD_Init(void);
+static void MX_ADC1_Init(void);
 /* USER CODE BEGIN PFP */
 
 /* USER CODE END PFP */
@@ -88,29 +111,24 @@ void User_USART1_IRQHandler(void)
 {
 	//incoming data on USART1 (CFA10052 H1, pins 1 & 2)
 	//called by USART1_IRQHandler() in stm32f4xx_it.c
-	//echo data back to USART1
-	if (LL_USART_IsActiveFlag_RXNE(USART1))
-	{
-		uint8_t Data = LL_USART_ReceiveData8(USART1);
-		LL_USART_TransmitData8(USART1, Data);
-		LL_USART_ClearFlag_RXNE(USART1);
-	}
+	//dont do anything other than clear the flag
+	LL_USART_ClearFlag_RXNE(USART1);
 }
 
-void USB_IncomingData(uint8_t* Buf, uint32_t *Len)
+void USB_IncomingData(uint8_t *Buf, uint32_t *Len)
 {
 	//incoming data from USB serial (ACM CDC)
 	//called from CDC_Receive_FS() in usbd_cdc_if.c
-	//echo data back out to USB
+	//dont do anything
+}
 
-	//this is super basic, and for example only.
-	//It will fail if incoming data is not full transmitted
-	//before new data is received. A proper FIFO is needed.
-	memcpy(UserTxBufferFS, Buf, *Len);
-	CDC_Transmit_FS(UserTxBufferFS, *Len);
-
-	//function that calls us takes care of setting up the RX buffer
-	//for the next transaction, so nothing to do here
+void HAL_ADC_ConvCpltCallback(ADC_HandleTypeDef *hadc)
+{
+	//ADC conversion complete callback (from ADC_IRQHandler() in stm32f4xx_it.c)
+	//Runs at PCLK2/8/480 = 84000000/8/480 = 21875 KHz
+	//ADC values are summed to create an average in the main loop
+	ADCDataSum += HAL_ADC_GetValue(&hadc1);
+	ADCDataCount++;
 }
 
 /* USER CODE END 0 */
@@ -138,7 +156,9 @@ int main(void)
 	SystemClock_Config();
 
 	/* USER CODE BEGIN SysInit */
-
+	//For some reason HAL doesnt always get this right
+	//after SystemClock_Config(). Do it again.
+	HAL_InitTick(TICK_INT_PRIORITY);
 	/* USER CODE END SysInit */
 
 	/* Initialize all configured peripherals */
@@ -151,154 +171,232 @@ int main(void)
 	MX_USB_DEVICE_Init();
 	MX_USART2_UART_Init();
 	MX_SDIO_SD_Init();
-	MX_FATFS_Init();
+	MX_ADC1_Init();
 	/* USER CODE BEGIN 2 */
 
 	//CFA10052 specific init's
 	LEDs_Init();
 	Keypad_Init();
 	ST7529_Init();
+	LEDs_LCDBacklightSet(50);
+	LEDs_KeypadBacklightSet(50);
+
+	//Start the ADC
+	HAL_NVIC_EnableIRQ(ADC_IRQn);
+	HAL_ADC_Start(&hadc1);
+	HAL_ADC_Start_IT(&hadc1);
 
 	/* USER CODE END 2 */
 
 	/* Infinite loop */
 	/* USER CODE BEGIN WHILE */
-	char TempS[40];
-	uint8_t LEDRotate = 0;
-	uint8_t Contrast = LCD_CONTRAST_INIT;
-	uint8_t Backlight = 40;
-	uint8_t Keypad = 30;
-	uint8_t c = 0;
-	uint8_t Pressed[BUTTON_COUNT] =	{ 0, };
+
+	//averaged ADC sample storage
+	//let's make use of that hardware float processor
+	double		ADCSamples[SAMPLE_RECORDS];
+	uint32_t	ADCSamplePos;
+
+	//local vars
+	uint32_t	i, j;
+	char		TempS[40];
+	uint32_t	SampleLength, SampleLengthPrev;
+	uint32_t	SampleTimer, KeyTimer;
+	uint32_t	XCursorPos;
+	double		XCursorValue;
+	uint8_t		DoLCDUpdate;
+
+
+	//init local vars
+	for (i = 0; i < SAMPLE_RECORDS; i++)
+		ADCSamples[i] = -1.0f;
+	ADCSamplePos = 0;
+	DoLCDUpdate = 1;
+	SampleLength = SAMPLE_TIME;
+	XCursorPos = LCD_WIDTH / 2;
+	XCursorValue = -1.0f;
+
+	//init timers
+	TIMER_SET_NEXT(SampleTimer, SampleLength)
+	TIMER_SET_NEXT(KeyTimer, KEY_REPEAT_TIMER)
+
+	//main loop
 	while (1)
 	{
 		//keypad check
 		Keypad_CheckButtons();
 
-		//display / leds update (every ~500mS)
-		if (c++ > 100)
-		{
-			//led rotate
-			LEDs_Set(LED_1_RED, (LEDRotate == 0) ? 100 : 0);
-			LEDs_Set(LED_1_GREEN, (LEDRotate == 0) ? 0 : 100);
-			LEDs_Set(LED_2_RED, (LEDRotate == 1) ? 100 : 0);
-			LEDs_Set(LED_2_GREEN, (LEDRotate == 1) ? 0 : 100);
-			LEDs_Set(LED_3_RED, (LEDRotate == 2) ? 100 : 0);
-			LEDs_Set(LED_3_GREEN, (LEDRotate == 2) ? 0 : 100);
-			LEDs_Set(LED_4_RED, (LEDRotate == 3) ? 100 : 0);
-			LEDs_Set(LED_4_GREEN, (LEDRotate == 3) ? 0 : 100);
-			LEDRotate++;
-			if (LEDRotate > 3)
-				LEDRotate = 0;
-
-			//handle button holding
-			if (Keypad_ButtonState[KEY_UP] & BUTTON_HELD)
-				Backlight += (Backlight > 97) ? 0 : 4;
-			if (Keypad_ButtonState[KEY_DOWN] & BUTTON_HELD)
-				Backlight -= (Backlight < 4) ? 0 : 4;
-
-			if (Keypad_ButtonState[KEY_RIGHT] & BUTTON_HELD)
-				Contrast += (Contrast > 0xFE) ? 0 : 2;
-			if (Keypad_ButtonState[KEY_LEFT] & BUTTON_HELD)
-				Contrast -= (Contrast < 2) ? 0 : 2;
-
-			if (Keypad_ButtonState[KEY_ENTER] & BUTTON_HELD)
-				Keypad += (Keypad > 97) ? 0 : 4;
-			if (Keypad_ButtonState[KEY_CANCEL] & BUTTON_HELD)
-				Keypad -= (Keypad < 4) ? 0 : 4;
-
-			//update lcd
-			uint16_t x, y;
-			//blank the frame buffer
-			memset(LCD_FrameBuffer, 0x00, LCD_WIDTH * LCD_HEIGHT);
-			//draw alternating check pattern
-			if (LEDRotate >> 1)
-				for (x = 0; x < LCD_WIDTH / 2; x++)
-					for (y = 0; y < LCD_HEIGHT; y++)
-						LCD_FrameBuffer[(x * 2) + (y & 1) + (y * LCD_WIDTH)] = 0xFF;
-			else
-				for (x = 0; x < LCD_WIDTH / 2; x++)
-					for (y = 0; y < LCD_HEIGHT; y++)
-						LCD_FrameBuffer[(x * 2) + (1 - (y & 1)) + (y * LCD_WIDTH)] = 0xFF;
-			//draw a box
-			for (x = 0; x < LCD_WIDTH; x++)
-			{
-				LCD_FrameBuffer[x] = 0xFF;
-				LCD_FrameBuffer[x + ((LCD_HEIGHT - 1) * LCD_WIDTH)] = 0xFF;
-			}
-			for (y = 0; y < LCD_HEIGHT; y++)
-			{
-				LCD_FrameBuffer[(LCD_WIDTH * y)] = 0xFF;
-				LCD_FrameBuffer[(LCD_WIDTH - 1) + (LCD_WIDTH * y)] = 0xFF;
-			}
-			//blank out a text box
-			for (x = 12; x < 105; x++)
-				for (y = 8; y < 54; y++)
-					LCD_FrameBuffer[x + (y * LCD_WIDTH)] = 0;
-			//show info text
-			tsprintf(TempS, "Backlight: %03d", Backlight);
-			Font_WriteString(LCD_FrameBuffer, 10, 10, TempS);
-			tsprintf(TempS, "Keypad BL: %03d", Keypad);
-			Font_WriteString(LCD_FrameBuffer, 10, 22, TempS);
-			tsprintf(TempS, "Contrast : %03d", Contrast);
-			Font_WriteString(LCD_FrameBuffer, 10, 34, TempS);
-			//show button status
-			tsprintf(TempS, "Keypad Check: \003%c \004%c \002%c \001%c \006%c \007%c", (Pressed[KEY_UP] ? '\xBB' : '.'), (Pressed[KEY_DOWN] ? '\xBB' : '.'),
-				(Pressed[KEY_LEFT] ? '\xBB' : '.'), (Pressed[KEY_RIGHT] ? '\xBB' : '.'), (Pressed[KEY_ENTER] ? '\xBB' : '.'),
-				(Pressed[KEY_CANCEL] ? '\xBB' : '.'));
-			Font_WriteString(LCD_FrameBuffer, 10, 34 + 12, TempS);
-			//write framebuffer to lcd controller ic
-			ST7529_BufferToLCD(LCD_FrameBuffer);
-
-			//reset loop counter
-			c = 0;
-		}
-
-		//handle button presses
-		if (Keypad_ButtonState[KEY_UP] & BUTTON_RELEASED)
-		{
-			Backlight += (Backlight > 99) ? 0 : 1;
-			Pressed[KEY_UP] = 1;
-		}
-		if (Keypad_ButtonState[KEY_DOWN] & BUTTON_RELEASED)
-		{
-			Backlight -= (Backlight == 0) ? 0 : 1;
-			Pressed[KEY_DOWN] = 1;
-		}
-
+		//handle button presses / holds
 		if (Keypad_ButtonState[KEY_RIGHT] & BUTTON_RELEASED)
 		{
-			Contrast += (Contrast > 0xFF) ? 0 : 1;
-			Pressed[KEY_RIGHT] = 1;
+			//right key pressed, move cursor right
+			XCursorPos += (XCursorPos >= LCD_WIDTH-1) ? 0 : 1;
+			DoLCDUpdate = 1;
 		}
 		if (Keypad_ButtonState[KEY_LEFT] & BUTTON_RELEASED)
 		{
-			Contrast -= (Contrast == 0) ? 0 : 1;
-			Pressed[KEY_LEFT] = 1;
+			//left key pressed, move cursor left
+			XCursorPos -= (XCursorPos == 0) ? 0 : 1;
+			DoLCDUpdate = 1;
 		}
-
-		if (Keypad_ButtonState[KEY_ENTER] & BUTTON_RELEASED)
+		if (Keypad_ButtonState[KEY_UP] & BUTTON_RELEASED)
 		{
-			Keypad += (Keypad > 99) ? 0 : 1;
-			Pressed[KEY_ENTER] = 1;
+			//up key pressed, increase sample period
+			SampleLength += (SampleLength > SAMPLE_TIME_MAX-10) ? 0 : 10;
+			DoLCDUpdate = 1;
+		}
+		if (Keypad_ButtonState[KEY_DOWN] & BUTTON_RELEASED)
+		{
+			//down key pressed, decrease sample period
+			SampleLength -= (SampleLength < SAMPLE_TIME_MIN+10) ? 0 : 10;
+			DoLCDUpdate = 1;
 		}
 		if (Keypad_ButtonState[KEY_CANCEL] & BUTTON_RELEASED)
 		{
-			Keypad -= (Keypad == 0) ? 0 : 1;
-			Pressed[KEY_CANCEL] = 1;
+			//X key pressed, toggle pause
+			if (SampleLength == 0)
+				SampleLength = SampleLengthPrev;
+			else
+			{
+				SampleLengthPrev = SampleLength;
+				SampleLength = 0;
+			}
+			DoLCDUpdate = 1;
 		}
 
-		//update contrst
-		ST7529_WriteContrast(Contrast);
-		//update lcd backlight brightness
-		LEDs_LCDBacklightSet(Backlight);
-		//update keypad backlight brightness
-		LEDs_KeypadBacklightSet(Keypad);
+		//key hold repeat timer
+		IF_TIMER_EXPIRED(KeyTimer)
+		{
+			//reset timer
+			TIMER_SET_NEXT(KeyTimer, KEY_REPEAT_TIMER)
 
-		//loop delay
-		HAL_Delay(5);            //5mS
+			//handle key holds
+			if (Keypad_ButtonState[KEY_RIGHT] & BUTTON_HELD)
+			{
+				//right key held, move cursor right
+				XCursorPos += (XCursorPos >= LCD_WIDTH-1) ? 0 : 1;
+				DoLCDUpdate = 1;
+			}
+			if (Keypad_ButtonState[KEY_LEFT] & BUTTON_HELD)
+			{
+				//left key held, move cursor left
+				XCursorPos -= (XCursorPos == 0) ? 0 : 1;
+				DoLCDUpdate = 1;
+			}
+			if (Keypad_ButtonState[KEY_UP] & BUTTON_HELD)
+			{
+				//up key held, increase sample period
+				SampleLength += (SampleLength > SAMPLE_TIME_MAX-10) ? 0 : 10;
+				DoLCDUpdate = 1;
+			}
+			if (Keypad_ButtonState[KEY_DOWN] & BUTTON_HELD)
+			{
+				//down key held, decrease sample period
+				SampleLength -= (SampleLength < SAMPLE_TIME_MIN+10) ? 0 : 10;
+				DoLCDUpdate = 1;
+			}
+		}
+
+		//take averaged ADC value if not paused, and sample timer expired
+		if (SampleLength != 0)
+		{
+			IF_TIMER_EXPIRED(SampleTimer)
+			{
+				//set next sample timer expiry
+				TIMER_SET_NEXT(SampleTimer, SampleLength)
+
+				//stop ADC interrupts
+				HAL_NVIC_DisableIRQ(ADC_IRQn);
+				//calculate ADC average value over period
+				double ADCAvg = ADCDataSum / (double)ADCDataCount;
+				//reset ADC sum vars
+				ADCDataCount = 0;
+				ADCDataSum = 0;
+				//re-enable ADC interrupts
+				HAL_NVIC_EnableIRQ(ADC_IRQn);
+				//store the averaged ADC value
+				ADCSamples[ADCSamplePos % SAMPLE_RECORDS] = ADCAvg;
+				ADCSamplePos++;
+				//do lcd update
+				DoLCDUpdate = 1;
+			}
+		}
+
+		//do LCD update if needed
+		if (DoLCDUpdate == 1)
+		{
+			//LCD update needed
+
+			//blank the lcd frame buffer
+			memset(LCD_FrameBuffer, 0x00, LCD_WIDTH * LCD_HEIGHT);
+
+			//display moving graph
+			//LCD is 68 pixels high, ADC has max value of 4096 (=3.3V*2 in)
+			for (i = 0; i < LCD_WIDTH; i++)
+			{
+				//draw right to left
+				uint32_t XPos = (LCD_WIDTH-1-i);
+				//get ADC value
+				double val = -1.0f;
+				if (i < ADCSamplePos-1)
+					val = ADCSamples[(ADCSamplePos-1-i) % SAMPLE_RECORDS];
+				//check if we are a X cursor point, if so keep the value
+				if (XPos == XCursorPos)
+					XCursorValue = val;
+				//if ADC value is valid, draw it
+				if (val > -0.0f)
+				{
+					//calc Y pixel position
+					uint8_t YPos = round((val / 4096.0f) * LCD_HEIGHT);
+					//flip it the right way up
+					YPos = (LCD_HEIGHT-1) - YPos;
+					//check limits
+					if (YPos > LCD_HEIGHT - 1)
+						YPos = LCD_HEIGHT - 1;
+					//draw faded bar to the point
+					for (j = YPos; j < LCD_HEIGHT; j++)
+						LCD_FrameBuffer[XPos + (j * LCD_WIDTH)] = 0x70;
+					//draw solid point, right to left
+					LCD_FrameBuffer[XPos + (YPos * LCD_WIDTH)] = 0xff;
+				}
+			}
+
+			//draw x cursor (dotted vertical line)
+			for (i = 0; i < LCD_HEIGHT; i++)
+				LCD_FrameBuffer[XCursorPos + (i*LCD_WIDTH)] = (i % 2 ? 0xff : 0x00);
+
+			//draw x cursor value text if valid in volts on ADC pin
+			if (XCursorValue > -0.0f)
+			{
+				//ADC-Volts = (ADCValue / MaxADCCount) * ADCMaxV * ResistorDivisor
+				double Volts = (XCursorValue / 4096.0f) * 3.3f * 2.0f;
+				tsprintf(TempS, "CVal:%fV", Volts);
+			}
+			else
+				tsprintf(TempS, "CVal:N/A");
+			Font_WriteString(LCD_FrameBuffer, 2, LCD_HEIGHT-30, TempS);
+
+			//x cursor position text
+			double XCursorPosS = (LCD_WIDTH - 1 - XCursorPos) * SampleLength / 1000.0f;
+			tsprintf(TempS, "CPos:%fS", XCursorPosS);
+			Font_WriteString(LCD_FrameBuffer, 2, LCD_HEIGHT-20, TempS);
+
+			//sample time text
+			if (SampleLength == 0)
+				//paused
+				tsprintf(TempS, "STime:PAUSE");
+			else
+				tsprintf(TempS, "STime:%fS", (double)SampleLength/1000.0f);
+			Font_WriteString(LCD_FrameBuffer, 2, LCD_HEIGHT-10, TempS);
+
+			//send framebuffer to the LCD controller
+			ST7529_BufferToLCD(LCD_FrameBuffer);
+
+			//done
+			DoLCDUpdate = 0;
+		}
 
 		/* USER CODE END WHILE */
+
 		/* USER CODE BEGIN 3 */
 	}
 	/* USER CODE END 3 */
@@ -348,6 +446,60 @@ void SystemClock_Config(void)
 }
 
 /**
+ * @brief ADC1 Initialization Function
+ * @param None
+ * @retval None
+ */
+static void MX_ADC1_Init(void)
+{
+
+	/* USER CODE BEGIN ADC1_Init 0 */
+
+	/* USER CODE END ADC1_Init 0 */
+
+	ADC_ChannelConfTypeDef sConfig =
+	{ 0 };
+
+	/* USER CODE BEGIN ADC1_Init 1 */
+
+	/* USER CODE END ADC1_Init 1 */
+	/** Configure the global features of the ADC (Clock, Resolution, Data Alignment and number of conversion)
+	 */
+	hadc1.Instance = ADC1;
+	hadc1.Init.ClockPrescaler = ADC_CLOCK_SYNC_PCLK_DIV8;
+	hadc1.Init.Resolution = ADC_RESOLUTION_12B;
+	hadc1.Init.ScanConvMode = DISABLE;
+	hadc1.Init.ContinuousConvMode = ENABLE;
+	hadc1.Init.DiscontinuousConvMode = DISABLE;
+	hadc1.Init.ExternalTrigConvEdge = ADC_EXTERNALTRIGCONVEDGE_NONE;
+	hadc1.Init.ExternalTrigConv = ADC_SOFTWARE_START;
+	hadc1.Init.DataAlign = ADC_DATAALIGN_RIGHT;
+	hadc1.Init.NbrOfConversion = 1;
+	hadc1.Init.DMAContinuousRequests = DISABLE;
+	hadc1.Init.EOCSelection = ADC_EOC_SINGLE_CONV;
+	if (HAL_ADC_Init(&hadc1) != HAL_OK)
+	{
+		Error_Handler();
+	}
+	/** Configure for the selected ADC regular channel its corresponding rank in the sequencer and its sample time.
+	 */
+	sConfig.Channel = ADC_CHANNEL_8;
+	sConfig.Rank = 1;
+	sConfig.SamplingTime = ADC_SAMPLETIME_3CYCLES;
+	if (HAL_ADC_ConfigChannel(&hadc1, &sConfig) != HAL_OK)
+	{
+		Error_Handler();
+	}
+	/* USER CODE BEGIN ADC1_Init 2 */
+	sConfig.Channel = ADC_CHANNEL_8;
+	sConfig.Rank = 1;
+	sConfig.SamplingTime = ADC_SAMPLETIME_480CYCLES;
+	HAL_ADC_ConfigChannel(&hadc1, &sConfig);
+	/* USER CODE END ADC1_Init 2 */
+
+}
+
+/**
  * @brief SDIO Initialization Function
  * @param None
  * @retval None
@@ -369,6 +521,14 @@ static void MX_SDIO_SD_Init(void)
 	hsd.Init.BusWide = SDIO_BUS_WIDE_1B;
 	hsd.Init.HardwareFlowControl = SDIO_HARDWARE_FLOW_CONTROL_DISABLE;
 	hsd.Init.ClockDiv = 0;
+	if (HAL_SD_Init(&hsd) != HAL_OK)
+	{
+		Error_Handler();
+	}
+	if (HAL_SD_ConfigWideBusOperation(&hsd, SDIO_BUS_WIDE_4B) != HAL_OK)
+	{
+		Error_Handler();
+	}
 	/* USER CODE BEGIN SDIO_Init 2 */
 
 	/* USER CODE END SDIO_Init 2 */
@@ -831,7 +991,7 @@ static void MX_GPIO_Init(void)
 	LL_GPIO_Init(GPIOA, &GPIO_InitStruct);
 
 	/**/
-	GPIO_InitStruct.Pin = H1_5_GPIO5_Pin | H1_6_GPIO6_Pin | H1_4_GPIO10_Pin | H1_3_GPIO9_Pin | H1_7_GPIO11_Pin | H1_8_GPIO12_Pin;
+	GPIO_InitStruct.Pin = H1_6_GPIO6_Pin | H1_4_GPIO10_Pin | H1_3_GPIO9_Pin | H1_7_GPIO11_Pin | H1_8_GPIO12_Pin;
 	GPIO_InitStruct.Mode = LL_GPIO_MODE_INPUT;
 	GPIO_InitStruct.Pull = LL_GPIO_PULL_NO;
 	LL_GPIO_Init(GPIOB, &GPIO_InitStruct);

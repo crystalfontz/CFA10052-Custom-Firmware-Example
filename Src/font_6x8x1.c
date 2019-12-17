@@ -92,10 +92,10 @@ void Font_WriteString(uint8_t *Buffer, uint8_t XPos, uint8_t YPos, const char *T
 		if (Text[i] == 0)
 			//stop if string is null-terminated
 			break;
-		//advance x pixel position
-		XPos += FONT_WIDTH;
 		//render the character
 		Font_DrawCharacter(Buffer, XPos, YPos, Text[i]);
+		//advance x pixel position
+		XPos += FONT_WIDTH;
 	}
 }
 

@@ -21,6 +21,8 @@
 #pragma once
 #include "main.h"
 
+#define TPRINTF_FLOAT
+
 //public functions
 void tsprintf(char* s,char *fmt, ...);
 void tvsprintf(char *s, char *fmt, va_list args);
