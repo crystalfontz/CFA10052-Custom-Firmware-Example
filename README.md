@@ -1,6 +1,10 @@
-# Crystalfontz CFA10052 Custom Firmware Example (ADC Use Example)
+Crystalfontz CFA10052 Custom Firmware Example  
+(ADC Spectrogram)
+===
 
 **NOTE: this example source-code & information is for CFA10052 hardware version 1.1 and onwards.**  
+
+**See this github projects branches for other CFA10052 examples**  
 
 ## Introduction
 The Crystalfontz CFA10052 is a versatile intelligent LCD module.
@@ -23,12 +27,8 @@ CFA10052 hardware features:
   * Multiple serial/SPI/I2C/CAN interfaces (depending on GPIO use).
   
 This example firmware, when compiled and programmed to a Crystalfontz CFA10052 module will:
-  * Display on the LCD an alternating grid, with current backlights, LCD contrast and keypad status information.
-  * Provides control of the backlights, and LCD contrast using the keypad.
-  * Cycles the color of the four LEDs from red to green in sequence.
-  * Enables the USART serial port on Header-1 pins 1 & 2 (115200 baud), and echoes any received data.
-  * Enables the USB virtual serial port, and echoes any received data back to the host.
-  
+  * Sample the first ADC input pin at approx 44KHz, and render a 0 to 22Khz frequency spectrum on the LCD.
+    
 ## Software & Hardware Requirements  
   * A [Crystalfontz CFA10052 (hardware v1.1 or later) Module (CFA735 / CFA835)](https://www.crystalfontz.com/product/cfa835tfk)
   * A PC (Windows/Linux/OSX) with [STM32 ST-LINK Utility](https://www.st.com/en/development-tools/stsw-link004.html) and [STM32CubeIDE](https://www.st.com/en/development-tools/stm32cubeide.html) installed.
@@ -47,6 +47,11 @@ ST-LINK Pin | CFA10052 H1 Pin | Description
 20 | 15 | GND
 
 *Note: If you're having trouble with ST-LINK to CFA10052 communications, add 10K pull-up resistors to the SWD-IO and SWD-CLK lines.*
+
+## Hardware for AC input to the CFA10052 ADC
+The two ADC input pins on the CFA10052 are not designed to accept a AC input signal (ie, an audio signal) without extra hardware.
+A AC to DC decoupling circuit is required. This can be as simple as a capacitor and two resistors, but the frequency response, and so accuracy of the spectrogram will likley be quite average. Ideally a opamp buffered and protected input is required.
+*todo: add more information*
 
 ## Removing the CFA735/CFA835 Firmware
 The CFA10052 is supplied by Crystalfontz with either the CFA735 or CFA835 firmware and a bootloader pre-installed. The flash
