@@ -39,7 +39,7 @@
 
 #define BUTTON_COUNT			6
 #define DEBOUNCE_DELAY			25
-#define BUTTON_HOLD_DELAY		2000
+#define BUTTON_HOLD_DELAY		1000
 
 #define BUTTON_PRESSED			(1<<0)
 #define BUTTON_RELEASED			(1<<1)
