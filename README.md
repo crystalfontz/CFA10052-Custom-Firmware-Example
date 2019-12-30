@@ -1,4 +1,6 @@
-# Crystalfontz CFA10052 Custom Firmware (ADC Histogram Example)
+Crystalfontz CFA10052 Custom Firmware Example  
+(Scrolling ADC Graph)
+===
 
 **NOTE: this example source-code & information is for CFA10052 hardware version 1.1 and onwards.**  
 
@@ -23,7 +25,7 @@ CFA10052 hardware features:
   * Multiple serial/SPI/I2C/CAN interfaces (depending on GPIO use).
   
 This example firmware, when compiled and programmed to a Crystalfontz CFA10052 module will:
-  * Display a scrolling histogram of ADC voltage input data, and provide scroll speed, and cursor functions.
+  * Display a scrolling graph of ADC voltage input data, and provide scroll speed, and cursor functions.
   
 ## Software & Hardware Requirements  
   * A [Crystalfontz CFA10052 (hardware v1.1 or later) Module (CFA735 / CFA835)](https://www.crystalfontz.com/product/cfa835tfk)
