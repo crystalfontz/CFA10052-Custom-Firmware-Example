@@ -1,4 +1,6 @@
-# Crystalfontz CFA10052 Custom Firmware Example  
+Crystalfontz CFA10052 Custom Firmware Example  
+(Basic Example)
+===
 
 **NOTE: this example source-code & information is for CFA10052 hardware version 1.1 and onwards.**  
 
