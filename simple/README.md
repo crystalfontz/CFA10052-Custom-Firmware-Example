@@ -1,4 +1,5 @@
-Crystalfontz CFA10052 Custom Firmware Examples 
+Crystalfontz CFA10052 Custom Firmware Example  
+(Basic Example)
 ===
 
 **NOTE: this example source-code & information is for CFA10052 hardware version 1.1 and onwards.**  
@@ -24,6 +25,13 @@ CFA10052 hardware features:
   * microSD card slot
   * Up to 20 general purpose IO pins (GPIO's)
   * Multiple serial/SPI/I2C/CAN interfaces (depending on GPIO use).
+  
+This example firmware, when compiled and programmed to a Crystalfontz CFA10052 module will:
+  * Display on the LCD an alternating grid, with current backlights, LCD contrast and keypad status information.
+  * Provides control of the backlights, and LCD contrast using the keypad.
+  * Cycles the color of the four LEDs from red to green in sequence.
+  * Enables the USART serial port on Header-1 pins 1 & 2 (115200 baud), and echoes any received data.
+  * Enables the USB virtual serial port, and echoes any received data back to the host.
   
 ## Software & Hardware Requirements  
   * A [Crystalfontz CFA10052 (hardware v1.1 or later) Module (CFA735 / CFA835)](https://www.crystalfontz.com/product/cfa835tfk)

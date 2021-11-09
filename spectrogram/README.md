@@ -1,9 +1,6 @@
-Crystalfontz CFA10052 Custom Firmware Examples 
-===
+# Crystalfontz CFA10052 Custom Firmware Example (ADC Use Example)
 
 **NOTE: this example source-code & information is for CFA10052 hardware version 1.1 and onwards.**  
-
-**See this github projects branches for other CFA10052 examples**
 
 ## Introduction
 The Crystalfontz CFA10052 is a versatile intelligent LCD module.
@@ -25,6 +22,13 @@ CFA10052 hardware features:
   * Up to 20 general purpose IO pins (GPIO's)
   * Multiple serial/SPI/I2C/CAN interfaces (depending on GPIO use).
   
+This example firmware, when compiled and programmed to a Crystalfontz CFA10052 module will:
+  * Display on the LCD an alternating grid, with current backlights, LCD contrast and keypad status information.
+  * Provides control of the backlights, and LCD contrast using the keypad.
+  * Cycles the color of the four LEDs from red to green in sequence.
+  * Enables the USART serial port on Header-1 pins 1 & 2 (115200 baud), and echoes any received data.
+  * Enables the USB virtual serial port, and echoes any received data back to the host.
+  
 ## Software & Hardware Requirements  
   * A [Crystalfontz CFA10052 (hardware v1.1 or later) Module (CFA735 / CFA835)](https://www.crystalfontz.com/product/cfa835tfk)
   * A PC (Windows/Linux/OSX) with [STM32 ST-LINK Utility](https://www.st.com/en/development-tools/stsw-link004.html) and [STM32CubeIDE](https://www.st.com/en/development-tools/stm32cubeide.html) installed.
@@ -32,10 +36,7 @@ CFA10052 hardware features:
   * A CFA10052 programming cable (details below)
   * If you are using Windows 7/8/8.1/10 (or equivalent Server versions) and would like to test the USB virtual serial port, you'll need to [download drivers from here](https://www.st.com/en/development-tools/stsw-stm32102.html]). The USB serial port will work without requiring additional drivers on Windows 10+, Linux, OS-X.
   
-A simple CFA10052 to ST-LINK programming cable is required.  
-To avoid the need to buy the H1 connector, pins and crimping tool, we suggest you purchase and modifiy a [Crystalfontz SCAB ribbon cable](https://www.crystalfontz.com/product/wrexty19-sixteen-pin-ribbon-cable).  
-
-The connection table is below:  
+A simple CFA10052 to ST-LINK programming cable is required. This cable may be obtained from Crystalfontz ([email us](mailto:support@crystalfontz.com)), or you may make one yourself using the connection table below:
   
 ST-LINK Pin | CFA10052 H1 Pin | Description
 --- | --- | ----
