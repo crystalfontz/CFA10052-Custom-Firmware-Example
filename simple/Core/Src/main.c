@@ -53,7 +53,7 @@
 //LCD Controller/Panel type must be set here!
 // CFA10052 hardware version v1.0 to v1.5 = LCDCORE_ST7529
 // CFA10052 hardware version v1.6 to v1.9 = LCDCORE_UC1611S
-// CFA10052 hardware version v2.0+ = LCDCORE_UC1611S_INV
+// CFA10052 hardware version v1.9+ = LCDCORE_UC1611S_INV
 
 //#define LCD_TYPE		LCDCORE_ST7529
 //#define LCD_TYPE		LCDCORE_UC1611S

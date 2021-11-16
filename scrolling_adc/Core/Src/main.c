@@ -69,10 +69,11 @@
 //LCD Controller/Panel type must be set here!
 // CFA10052 hardware version v1.0 to v1.5 = LCDCORE_ST7529
 // CFA10052 hardware version v1.6 to v1.9 = LCDCORE_UC1611S
-// CFA10052 hardware version v2.0+ = LCDCORE_UC1611S_INV
+// CFA10052 hardware version v1.9+ = LCDCORE_UC1611S_INV
 //#define LCD_TYPE		LCDCORE_ST7529
 //#define LCD_TYPE		LCDCORE_UC1611S
-#define LCD_TYPE		LCDCORE_UC1611S_INV
+//#define LCD_TYPE		LCDCORE_UC1611S_INV
+
 #ifndef LCD_TYPE
 # error LCD_TYPE NOT SET!!!
 #endif
@@ -165,10 +166,8 @@ int main(void)
 	/* USER CODE BEGIN 2 */
 
 	//CFA10052 specific init's
-	HAL_SuspendTick();
-	LL_Init1msTick(8000000);
 	HAL_ResumeTick();
-	LL_SYSTICK_EnableIT();
+	HAL_Delay(1);
 
 	LEDs_Init();
 	Keypad_Init();
@@ -188,18 +187,17 @@ int main(void)
 
 	//averaged ADC sample storage
 	//let's make use of that hardware float processor
-	double		ADCSamples[SAMPLE_RECORDS];
-	uint32_t	ADCSamplePos;
+	double ADCSamples[SAMPLE_RECORDS];
+	uint32_t ADCSamplePos;
 
 	//local vars
-	uint32_t	i, j;
-	char		TempS[40];
-	uint32_t	SampleLength, SampleLengthPrev;
-	uint32_t	SampleTimer, KeyTimer;
-	uint32_t	XCursorPos;
-	double		XCursorValue;
-	uint8_t		DoLCDUpdate;
-
+	uint32_t i, j;
+	char TempS[40];
+	uint32_t SampleLength, SampleLengthPrev;
+	uint32_t SampleTimer, KeyTimer;
+	uint32_t XCursorPos;
+	double XCursorValue;
+	uint8_t DoLCDUpdate;
 
 	//init local vars
 	for (i = 0; i < SAMPLE_RECORDS; i++)
@@ -224,7 +222,7 @@ int main(void)
 		if (Keypad_ButtonState[KEY_RIGHT] & BUTTON_RELEASED)
 		{
 			//right key pressed, move cursor right
-			XCursorPos += (XCursorPos >= LCD_WIDTH-1) ? 0 : 1;
+			XCursorPos += (XCursorPos >= LCD_WIDTH - 1) ? 0 : 1;
 			DoLCDUpdate = 1;
 		}
 		if (Keypad_ButtonState[KEY_LEFT] & BUTTON_RELEASED)
@@ -236,13 +234,13 @@ int main(void)
 		if (Keypad_ButtonState[KEY_UP] & BUTTON_RELEASED)
 		{
 			//up key pressed, increase sample period
-			SampleLength += (SampleLength > SAMPLE_TIME_MAX-10) ? 0 : 10;
+			SampleLength += (SampleLength > SAMPLE_TIME_MAX - 10) ? 0 : 10;
 			DoLCDUpdate = 1;
 		}
 		if (Keypad_ButtonState[KEY_DOWN] & BUTTON_RELEASED)
 		{
 			//down key pressed, decrease sample period
-			SampleLength -= (SampleLength < SAMPLE_TIME_MIN+10) ? 0 : 10;
+			SampleLength -= (SampleLength < SAMPLE_TIME_MIN + 10) ? 0 : 10;
 			DoLCDUpdate = 1;
 		}
 		if (Keypad_ButtonState[KEY_CANCEL] & BUTTON_RELEASED)
@@ -268,7 +266,7 @@ int main(void)
 			if (Keypad_ButtonState[KEY_RIGHT] & BUTTON_HELD)
 			{
 				//right key held, move cursor right
-				XCursorPos += (XCursorPos >= LCD_WIDTH-1) ? 0 : 1;
+				XCursorPos += (XCursorPos >= LCD_WIDTH - 1) ? 0 : 1;
 				DoLCDUpdate = 1;
 			}
 			if (Keypad_ButtonState[KEY_LEFT] & BUTTON_HELD)
@@ -280,13 +278,13 @@ int main(void)
 			if (Keypad_ButtonState[KEY_UP] & BUTTON_HELD)
 			{
 				//up key held, increase sample period
-				SampleLength += (SampleLength > SAMPLE_TIME_MAX-10) ? 0 : 10;
+				SampleLength += (SampleLength > SAMPLE_TIME_MAX - 10) ? 0 : 10;
 				DoLCDUpdate = 1;
 			}
 			if (Keypad_ButtonState[KEY_DOWN] & BUTTON_HELD)
 			{
 				//down key held, decrease sample period
-				SampleLength -= (SampleLength < SAMPLE_TIME_MIN+10) ? 0 : 10;
+				SampleLength -= (SampleLength < SAMPLE_TIME_MIN + 10) ? 0 : 10;
 				DoLCDUpdate = 1;
 			}
 		}
@@ -302,7 +300,7 @@ int main(void)
 				//stop ADC interrupts
 				HAL_NVIC_DisableIRQ(ADC_IRQn);
 				//calculate ADC average value over period
-				double ADCAvg = ADCDataSum / (double)ADCDataCount;
+				double ADCAvg = ADCDataSum / (double) ADCDataCount;
 				//reset ADC sum vars
 				ADCDataCount = 0;
 				ADCDataSum = 0;
@@ -329,11 +327,11 @@ int main(void)
 			for (i = 0; i < LCD_WIDTH; i++)
 			{
 				//draw right to left
-				uint32_t XPos = (LCD_WIDTH-1-i);
+				uint32_t XPos = (LCD_WIDTH - 1 - i);
 				//get ADC value
 				double val = -1.0f;
-				if (i < ADCSamplePos-1)
-					val = ADCSamples[(ADCSamplePos-1-i) % SAMPLE_RECORDS];
+				if (i < ADCSamplePos - 1)
+					val = ADCSamples[(ADCSamplePos - 1 - i) % SAMPLE_RECORDS];
 				//check if we are a X cursor point, if so keep the value
 				if (XPos == XCursorPos)
 					XCursorValue = val;
@@ -343,7 +341,7 @@ int main(void)
 					//calc Y pixel position
 					uint8_t YPos = round((val / 4096.0f) * LCD_HEIGHT);
 					//flip it the right way up
-					YPos = (LCD_HEIGHT-1) - YPos;
+					YPos = (LCD_HEIGHT - 1) - YPos;
 					//check limits
 					if (YPos > LCD_HEIGHT - 1)
 						YPos = LCD_HEIGHT - 1;
@@ -357,7 +355,7 @@ int main(void)
 
 			//draw x cursor (dotted vertical line)
 			for (i = 0; i < LCD_HEIGHT; i++)
-				LCD_FrameBuffer[XCursorPos + (i*LCD_WIDTH)] = (i % 2 ? 0xff : 0x00);
+				LCD_FrameBuffer[XCursorPos + (i * LCD_WIDTH)] = (i % 2 ? 0xff : 0x00);
 
 			//draw x cursor value text if valid in volts on ADC pin
 			if (XCursorValue > -0.0f)
@@ -368,20 +366,20 @@ int main(void)
 			}
 			else
 				tsprintf(TempS, "CVal:N/A");
-			Font_WriteString(LCD_FrameBuffer, 2, LCD_HEIGHT-30, TempS);
+			Font_WriteString(LCD_FrameBuffer, 2, LCD_HEIGHT - 30, TempS);
 
 			//x cursor position text
 			double XCursorPosS = (LCD_WIDTH - 1 - XCursorPos) * SampleLength / 1000.0f;
 			tsprintf(TempS, "CPos:%fS", XCursorPosS);
-			Font_WriteString(LCD_FrameBuffer, 2, LCD_HEIGHT-20, TempS);
+			Font_WriteString(LCD_FrameBuffer, 2, LCD_HEIGHT - 20, TempS);
 
 			//sample time text
 			if (SampleLength == 0)
 				//paused
 				tsprintf(TempS, "STime:PAUSE");
 			else
-				tsprintf(TempS, "STime:%fS", (double)SampleLength/1000.0f);
-			Font_WriteString(LCD_FrameBuffer, 2, LCD_HEIGHT-10, TempS);
+				tsprintf(TempS, "STime:%fS", (double) SampleLength / 1000.0f);
+			Font_WriteString(LCD_FrameBuffer, 2, LCD_HEIGHT - 10, TempS);
 
 			//send framebuffer to the LCD controller
 			LCDCore_BufferToLCD(LCD_FrameBuffer);
@@ -403,44 +401,42 @@ int main(void)
  */
 void SystemClock_Config(void)
 {
-	LL_FLASH_SetLatency(LL_FLASH_LATENCY_2);
-	while (LL_FLASH_GetLatency() != LL_FLASH_LATENCY_2)
-	{
-	}
-	LL_PWR_SetRegulVoltageScaling(LL_PWR_REGU_VOLTAGE_SCALE2);
-	LL_RCC_HSE_Enable();
+	RCC_OscInitTypeDef RCC_OscInitStruct =
+	{ 0 };
+	RCC_ClkInitTypeDef RCC_ClkInitStruct =
+	{ 0 };
 
-	/* Wait till HSE is ready */
-	while (LL_RCC_HSE_IsReady() != 1)
-	{
-
-	}
-	LL_RCC_PLL_ConfigDomain_SYS(LL_RCC_PLLSOURCE_HSE, LL_RCC_PLLM_DIV_8, 168, LL_RCC_PLLP_DIV_4);
-	LL_RCC_PLL_Enable();
-
-	/* Wait till PLL is ready */
-	while (LL_RCC_PLL_IsReady() != 1)
-	{
-
-	}
-	LL_RCC_SetAHBPrescaler(LL_RCC_SYSCLK_DIV_1);
-	LL_RCC_SetAPB1Prescaler(LL_RCC_APB1_DIV_2);
-	LL_RCC_SetAPB2Prescaler(LL_RCC_APB2_DIV_1);
-	LL_RCC_SetSysClkSource(LL_RCC_SYS_CLKSOURCE_PLL);
-
-	/* Wait till System clock is ready */
-	while (LL_RCC_GetSysClkSource() != LL_RCC_SYS_CLKSOURCE_STATUS_PLL)
-	{
-
-	}
-	LL_SetSystemCoreClock(84000000);
-
-	/* Update the time base */
-	if (HAL_InitTick(TICK_INT_PRIORITY) != HAL_OK)
+	/** Configure the main internal regulator output voltage
+	 */
+	__HAL_RCC_PWR_CLK_ENABLE();
+	__HAL_PWR_VOLTAGESCALING_CONFIG(PWR_REGULATOR_VOLTAGE_SCALE2);
+	/** Initializes the RCC Oscillators according to the specified parameters
+	 * in the RCC_OscInitTypeDef structure.
+	 */
+	RCC_OscInitStruct.OscillatorType = RCC_OSCILLATORTYPE_HSE;
+	RCC_OscInitStruct.HSEState = RCC_HSE_ON;
+	RCC_OscInitStruct.PLL.PLLState = RCC_PLL_ON;
+	RCC_OscInitStruct.PLL.PLLSource = RCC_PLLSOURCE_HSE;
+	RCC_OscInitStruct.PLL.PLLM = 8;
+	RCC_OscInitStruct.PLL.PLLN = 168;
+	RCC_OscInitStruct.PLL.PLLP = RCC_PLLP_DIV4;
+	RCC_OscInitStruct.PLL.PLLQ = 7;
+	if (HAL_RCC_OscConfig(&RCC_OscInitStruct) != HAL_OK)
 	{
 		Error_Handler();
 	}
-	LL_RCC_SetTIMPrescaler(LL_RCC_TIM_PRESCALER_TWICE);
+	/** Initializes the CPU, AHB and APB buses clocks
+	 */
+	RCC_ClkInitStruct.ClockType = RCC_CLOCKTYPE_HCLK | RCC_CLOCKTYPE_SYSCLK | RCC_CLOCKTYPE_PCLK1 | RCC_CLOCKTYPE_PCLK2;
+	RCC_ClkInitStruct.SYSCLKSource = RCC_SYSCLKSOURCE_PLLCLK;
+	RCC_ClkInitStruct.AHBCLKDivider = RCC_SYSCLK_DIV1;
+	RCC_ClkInitStruct.APB1CLKDivider = RCC_HCLK_DIV2;
+	RCC_ClkInitStruct.APB2CLKDivider = RCC_HCLK_DIV1;
+
+	if (HAL_RCC_ClockConfig(&RCC_ClkInitStruct, FLASH_LATENCY_2) != HAL_OK)
+	{
+		Error_Handler();
+	}
 }
 
 /* USER CODE BEGIN 4 */

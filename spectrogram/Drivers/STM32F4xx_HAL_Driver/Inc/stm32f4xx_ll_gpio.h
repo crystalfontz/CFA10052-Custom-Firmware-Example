@@ -340,11 +340,10 @@ __STATIC_INLINE uint32_t LL_GPIO_GetPinMode(GPIO_TypeDef *GPIOx, uint32_t Pin)
   *         @arg @ref LL_GPIO_OUTPUT_OPENDRAIN
   * @retval None
   */
-__STATIC_INLINE void LL_GPIO_SetPinOutputType(GPIO_TypeDef *GPIOx, uint32_t Pin, uint32_t OutputType)
+__STATIC_INLINE void LL_GPIO_SetPinOutputType(GPIO_TypeDef *GPIOx, uint32_t PinMask, uint32_t OutputType)
 {
-  MODIFY_REG(GPIOx->OTYPER, (GPIO_OTYPER_OT_0 << POSITION_VAL(Pin)), (OutputType << POSITION_VAL(Pin)));
+  MODIFY_REG(GPIOx->OTYPER, PinMask, (PinMask * OutputType));
 }
-  
 
 /**
   * @brief  Return gpio output type for several pins on dedicated port.
@@ -940,7 +939,8 @@ __STATIC_INLINE void LL_GPIO_ResetOutputPin(GPIO_TypeDef *GPIOx, uint32_t PinMas
   */
 __STATIC_INLINE void LL_GPIO_TogglePin(GPIO_TypeDef *GPIOx, uint32_t PinMask)
 {
-  WRITE_REG(GPIOx->ODR, READ_REG(GPIOx->ODR) ^ PinMask);
+  uint32_t odr = READ_REG(GPIOx->ODR);
+  WRITE_REG(GPIOx->BSRR, ((odr & PinMask) << 16u) | (~odr & PinMask));
 }
 
 /**
