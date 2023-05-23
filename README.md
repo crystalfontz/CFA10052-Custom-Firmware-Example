@@ -53,7 +53,7 @@ memory is also read & write protected. The protection must be removed, and flash
 
 **---- Important Note ----**    
 **The Crystalfontz supplied CFA735/CFA835 firmware and bootloader is not open-source, and cannot be copied off of the CFA10052 by the user,
-nor can it be programmed onto the CFA10052 by the user. Once a CFA735 or CFA835 is programmed with custom firmware, the module will loose all CFA735/CFA835 functionality.
+nor can it be programmed onto the CFA10052 by the user. Once a CFA735 or CFA835 is programmed with custom firmware, the module will lose all CFA735/CFA835 functionality.
 To regain CFA735/CFA835 functionality, the CFA10052 module will need to be physically returned to Crystalfontz for reprogramming.**  
 Please [email us](mailto:support@crystalfontz.com) if you need more information on this topic.  
 
